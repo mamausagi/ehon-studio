@@ -1,0 +1,17 @@
+{
+  "name": "えほんスタジオ",
+  "short_name": "えほんスタジオ",
+  "description": "パーソナライズ絵本の作成・閲覧アプリ。外部画像取込・台本づくり・音声つき",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fdf8ef",
+  "theme_color": "#e8845e",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>えほんスタジオ</title>
+<!-- ===== PWA設定（ホーム画面アイコン対応） ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e8845e">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<!-- iOS Safari 用 -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="えほんスタジオ">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- 検索エンジン除外 -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<style>
+  :root{
+    --bg:#fdf8ef; --card:#ffffff; --ink:#4a3f38; --sub:#8a7a6e;
+    --accent:#e8845e; --accent2:#7fb069; --line:#eadfd2;
+    --shadow:0 4px 14px rgba(90,70,50,.10);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Hiragino Maru Gothic ProN","Hiragino Kaku Gothic ProN","BIZ UDGothic",sans-serif;
+    touch-action:manipulation; -webkit-user-select:none; user-select:none;
+  }
+  textarea,input{ -webkit-user-select:text; user-select:text; font-family:inherit;}
+  button{font-family:inherit; cursor:pointer;}
+
+  header{
+    display:flex; align-items:center; gap:10px;
+    padding:14px 18px; background:var(--card); box-shadow:var(--shadow);
+    position:sticky; top:0; z-index:5;
+  }
+  header h1{font-size:20px; margin:0; letter-spacing:1px;}
+  header .logo{font-size:26px;}
+  header .spacer{flex:1;}
+
+  .wrap{max-width:980px; margin:0 auto; padding:18px;}
+
+  .btn{
+    border:none; border-radius:14px; padding:12px 18px; font-size:15px; font-weight:700;
+    background:#f1e7da; color:var(--ink); box-shadow:var(--shadow);
+  }
+  .btn:active{transform:scale(.97);}
+  .btn.primary{background:var(--accent); color:#fff;}
+  .btn.green{background:var(--accent2); color:#fff;}
+  .btn.small{padding:8px 12px; font-size:13px; border-radius:10px;}
+  .btn.ghost{background:transparent; box-shadow:none; color:var(--sub);}
+
+  /* ---------- 本棚 ---------- */
+  .shelf-actions{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;}
+  .hint{
+    background:#fff7e8; border:1px dashed #e8c98a; border-radius:14px;
+    padding:12px 16px; font-size:13px; color:#7a6540; line-height:1.7; margin-bottom:18px;
+  }
+  .books{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px;}
+  .book{
+    background:var(--card); border-radius:18px; box-shadow:var(--shadow);
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .book .cover{
+    aspect-ratio:4/3; background:#f5ede2 center/cover no-repeat;
+    display:flex; align-items:center; justify-content:center; font-size:44px;
+  }
+  .book .cover img{width:100%; height:100%; object-fit:cover; display:block;}
+  .book .meta{padding:10px 12px 4px;}
+  .book .meta .title{font-weight:800; font-size:15px; line-height:1.4;}
+  .book .meta .pages{font-size:12px; color:var(--sub); margin-top:2px;}
+  .book .ops{display:flex; gap:6px; padding:10px 12px 12px;}
+  .book .ops .btn{flex:1; padding:9px 4px; font-size:13px; border-radius:10px; box-shadow:none;}
+  .book .ops .menu{flex:0 0 auto; background:transparent; color:var(--sub); box-shadow:none; padding:9px 8px;}
+
+  /* ---------- エディタ ---------- */
+  .ed-head{display:flex; flex-direction:column; gap:10px; margin-bottom:16px;}
+  .ed-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{font-size:12px; color:var(--sub); font-weight:700;}
+  .field input{
+    border:2px solid var(--line); border-radius:12px; padding:10px 12px; font-size:16px;
+    background:#fff; color:var(--ink); outline:none; min-width:200px;
+  }
+  .field input:focus{border-color:var(--accent);}
+  .namehint{font-size:12px; color:var(--sub);}
+
+  .dropzone{
+    border:2px dashed #d8b98a; border-radius:16px; background:#fffaf0;
+    padding:16px; text-align:center; color:#7a6540; font-size:13px; line-height:1.8;
+    margin-bottom:18px;
+  }
+  .dropzone.over{background:#ffefd2; border-color:var(--accent);}
+  .dropzone b{color:var(--accent);}
+
+  .pagelist{display:flex; flex-direction:column; gap:14px;}
+  .pcard{
+    background:var(--card); border-radius:16px; box-shadow:var(--shadow);
+    padding:12px; display:flex; gap:12px; align-items:stretch;
+  }
+  .pcard.dragover{outline:3px dashed var(--accent);}
+  .pcard .pno{
+    flex:0 0 auto; width:34px; display:flex; align-items:center; justify-content:center;
+    font-weight:800; color:var(--sub); font-size:15px;
+  }
+  .pcard .thumb{
+    flex:0 0 180px; aspect-ratio:4/3; border-radius:12px; background:#f5ede2;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    border:2px solid var(--line); cursor:pointer; position:relative; font-size:13px; color:var(--sub);
+    text-align:center; padding:4px;
+  }
+  .pcard .thumb img{width:100%; height:100%; object-fit:cover;}
+  .pcard .thumb .del-img{
+    position:absolute; top:4px; right:4px; background:rgba(0,0,0,.45); color:#fff;
+    border:none; border-radius:50%; width:26px; height:26px; font-size:13px; line-height:1;
+  }
+  .pcard .body{flex:1; display:flex; flex-direction:column; gap:8px; min-width:0;}
+  .pcard textarea{
+    flex:1; min-height:86px; border:2px solid var(--line); border-radius:12px;
+    padding:10px; font-size:15px; line-height:1.7; resize:vertical; background:#fff; color:var(--ink); outline:none;
+  }
+  .pcard textarea:focus{border-color:var(--accent);}
+  .pcard .pops{display:flex; gap:6px; flex-wrap:wrap;}
+  .pcard .pops .btn{padding:7px 10px; font-size:13px; border-radius:10px; box-shadow:none; background:#f1e7da;}
+  .addpage{width:100%; margin-top:14px; padding:14px; font-size:15px;}
+
+  /* ---------- リーダー ---------- */
+  #reader{
+    position:fixed; inset:0; background:#2e2620; z-index:50; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+  }
+  #reader.open{display:flex;}
+  .rd-stage{
+    width:min(96vw, calc((100vh - 250px) * 4 / 3)); max-width:1100px;
+    background:#fffdf7; border-radius:18px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.4);
+    display:flex; flex-direction:column; position:relative;
+  }
+  .rd-img{
+    width:100%; aspect-ratio:4/3; background:#f5ede2; display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .rd-img img{width:100%; height:100%; object-fit:contain; display:block;}
+  .rd-img .noimg{font-size:20px; color:#b9a893;}
+  .rd-text{
+    padding:16px 22px 20px; font-size:clamp(16px, 2.6vw, 24px); line-height:1.9;
+    min-height:76px; letter-spacing:.5px;
+  }
+  .rd-stage.anim .rd-inner{animation:pagein .35s ease;}
+  @keyframes pagein{from{opacity:0; transform:translateX(26px);} to{opacity:1; transform:none;}}
+  @keyframes pageinL{from{opacity:0; transform:translateX(-26px);} to{opacity:1; transform:none;}}
+  .rd-stage.animL .rd-inner{animation:pageinL .35s ease;}
+  .rd-nav{
+    position:absolute; top:0; bottom:0; width:34%;
+  }
+  .rd-nav.left{left:0;} .rd-nav.right{right:0;}
+  .rd-bar{
+    display:flex; align-items:center; gap:14px; margin-top:14px; color:#e8dcc9;
+  }
+  .rd-bar .btn{background:rgba(255,255,255,.14); color:#fff; box-shadow:none;}
+  .rd-bar .pageno{font-size:14px; letter-spacing:1px; min-width:70px; text-align:center;}
+
+  /* ---------- 印刷 ---------- */
+  #printArea{display:none;}
+  @media print{
+    @page{size:A4 landscape; margin:8mm;}
+    body{background:#fff;}
+    body > *:not(#printArea){display:none !important;}
+    #printArea{display:block;}
+    .psheet{
+      page-break-after:always; height:96vh;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6mm;
+    }
+    .psheet img{max-width:100%; max-height:70vh; object-fit:contain;}
+    .psheet .ptext{font-size:20pt; line-height:1.9; text-align:center; max-width:90%;}
+    .psheet.cover .ptitle{font-size:34pt; font-weight:800; text-align:center;}
+    .psheet.cover .pauthor{font-size:14pt; color:#666;}
+    .psheet .pnum{position:absolute; bottom:4mm; right:8mm; font-size:10pt; color:#999;}
+  }
+
+  /* ---------- 台本・音声モーダル ---------- */
+  #daihonModal, #voiceModal{
+    position:fixed; inset:0; background:rgba(50,38,28,.5); z-index:60; display:none;
+    align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 14px;
+  }
+  #daihonModal.open, #voiceModal.open{display:flex;}
+  .btn.recing{background:#f4b8c1 !important;}
+  #vvStatus{min-height:20px; font-size:13px; color:var(--accent2); margin-top:8px;}
+  #vvStatus.err{color:#c0564a;}
+  .mbox{
+    background:var(--card); border-radius:20px; box-shadow:0 12px 40px rgba(0,0,0,.3);
+    max-width:560px; width:100%; padding:22px 22px 18px;
+  }
+  .mbox h2{margin:0 0 6px; font-size:19px;}
+  .mnote{font-size:13px; color:var(--sub); line-height:1.7; margin:0 0 14px;}
+  .mfield{margin-bottom:12px;}
+  .mfield label{display:block; font-size:12px; color:var(--sub); font-weight:700; margin-bottom:4px;}
+  .mfield select, .mfield input[type=text], .mfield input[type=password]{
+    width:100%; border:2px solid var(--line); border-radius:10px; padding:9px 10px;
+    font-size:15px; background:#fff; color:var(--ink); outline:none;
+  }
+  .mfield select:focus, .mfield input:focus{border-color:var(--accent);}
+  .mradio{display:flex; gap:14px; flex-wrap:wrap; font-size:14px;}
+  .mradio label{display:flex; align-items:center; gap:5px; font-weight:400; color:var(--ink); font-size:14px;}
+  .mrow{display:flex; gap:10px; flex-wrap:wrap; margin:16px 0 6px;}
+  .mrow .btn{flex:1; min-width:180px;}
+  .mbox details{
+    margin-top:10px; background:#faf5ec; border-radius:12px; padding:10px 14px; font-size:13px;
+  }
+  .mbox details summary{cursor:pointer; font-weight:700; color:var(--sub);}
+  .keynote{font-size:11.5px; color:#a08c76; line-height:1.6; margin-top:6px;}
+  #dhStatus{min-height:20px; font-size:13px; color:var(--accent2); margin-top:8px;}
+  #dhStatus.err{color:#c0564a;}
+  .mclose{width:100%; margin-top:10px;}
+
+  #toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:rgba(60,45,35,.92); color:#fff; padding:10px 22px; border-radius:999px;
+    font-size:14px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99;
+  }
+  #toast.show{opacity:1;}
+
+  @media (max-width:640px){
+    .pcard{flex-wrap:wrap;}
+    .pcard .thumb{flex:1 1 100%;}
+    .pcard .pno{width:auto;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">📖</span>
+  <h1 id="hd-title">えほんスタジオ</h1>
+  <span class="spacer"></span>
+  <button class="btn small ghost" id="hd-back" style="display:none">← 本棚へ</button>
+</header>
+
+<!-- ========== 本棚 ========== -->
+<div class="wrap" id="viewLibrary">
+  <div class="shelf-actions">
+    <button class="btn primary" id="btnNew">＋ 新しい絵本</button>
+    <button class="btn" id="btnImport">📥 絵本ファイルを読み込む</button>
+  </div>
+  <div class="hint">
+    🎨 <b>絵はどこで作ってもOK。</b>AIで生成した画像・手描きイラストのスキャン・写真を、そのままページに取り込めます。<br>
+    ファイル名を <b>01.png, 02.png…</b> の順にして「まとめて取り込み」すると、ページ順に自動で並びます。<br>
+    文章の中の <b>{なまえ}</b> は主人公の名前に自動で置き換わります（パーソナライズ絵本）。
+  </div>
+  <div class="books" id="bookGrid"></div>
+</div>
+
+<!-- ========== エディタ ========== -->
+<div class="wrap" id="viewEditor" style="display:none">
+  <div class="ed-head">
+    <div class="ed-row">
+      <div class="field" style="flex:2">
+        <label>えほんのタイトル</label>
+        <input id="edTitle" placeholder="えほんのタイトル">
+      </div>
+      <div class="field">
+        <label>主人公のなまえ</label>
+        <input id="edHero" placeholder="例：ゆうくん">
+      </div>
+    </div>
+    <div class="namehint">✍️ 文章に <b>{なまえ}</b> と書くと、読むとき・印刷するときに主人公の名前へ置き換わります。名前を変えるだけで「その子が主人公」の絵本になります。</div>
+    <div class="ed-row">
+      <button class="btn green" id="edRead">▶ よんでみる</button>
+      <button class="btn" id="edBulk">🖼 画像をまとめて取り込み</button>
+      <button class="btn" id="edDaihon">📝 台本をつくる</button>
+      <button class="btn" id="edVoice">🔊 音声</button>
+      <button class="btn" id="edPrint">🖨 印刷用（PDF）</button>
+      <button class="btn" id="edExport">📤 絵本ファイル書き出し</button>
+    </div>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    ここに画像ファイルをドラッグ＆ドロップでも取り込めます（複数OK・ファイル名順にページへ）。<br>
+    <b>AI生成画像／スキャンした手描きの絵／写真</b>、なんでも絵本になります。
+  </div>
+
+  <div class="pagelist" id="pageList"></div>
+  <button class="btn addpage" id="btnAddPage">＋ ページを追加</button>
+</div>
+
+<!-- ========== リーダー ========== -->
+<div id="reader">
+  <div class="rd-stage" id="rdStage">
+    <div class="rd-inner">
+      <div class="rd-img" id="rdImg"></div>
+      <div class="rd-text" id="rdText"></div>
+    </div>
+    <div class="rd-nav left" id="rdPrev"></div>
+    <div class="rd-nav right" id="rdNext"></div>
+  </div>
+  <div class="rd-bar">
+    <button class="btn" id="rdSpeak">🔊 よみあげ</button>
+    <span class="pageno" id="rdPageNo"></span>
+    <button class="btn" id="rdClose">✕ とじる</button>
+  </div>
+</div>
+
+<!-- ========== 音声モーダル ========== -->
+<div id="voiceModal">
+  <div class="mbox">
+    <h2>🔊 音声をつくる</h2>
+    <p class="mnote">ページごとの音声を絵本に埋め込みます。埋め込んだ音声は iPhone でも<b>オフラインで再生</b>でき、絵本ファイル（.ehon.json）にも一緒に保存されます。<br>
+    🎙 <b>かぞくの声の録音</b>は、各ページカードの「🎙 こえ」ボタンからできます。ここでは <b>AI音声（VOICEVOX）の一括生成</b>を行います。</p>
+
+    <div class="mfield">
+      <label>AI音声の話者（VOICEVOX）</label>
+      <select id="vvSpeaker">
+        <option value="3">ずんだもん</option>
+        <option value="2">四国めたん</option>
+        <option value="8">春日部つむぎ</option>
+      </select>
+    </div>
+    <div class="mfield">
+      <label>書き込み先</label>
+      <div class="mradio">
+        <label><input type="radio" name="vvWrite" value="empty" checked> 音声がないページだけ</label>
+        <label><input type="radio" name="vvWrite" value="all"> すべて作り直す</label>
+      </div>
+    </div>
+
+    <div class="mrow">
+      <button class="btn primary" id="vvGen">🔊 全ページの音声を生成</button>
+      <button class="btn" id="vvClear">🗑 音声をすべて削除</button>
+    </div>
+
+    <details>
+      <summary>VOICEVOXの準備・注意</summary>
+      <div class="keynote" style="margin-top:8px">
+        ・生成には、この<b>Macで VOICEVOX アプリを起動しておく</b>必要があります（未インストールなら voicevox.hiroshiba.jp から無料）。生成後の再生はどの端末でもアプリ不要です。<br>
+        ・文章中の {なまえ} は<b>いまの主人公名で読み上げが固定</b>されます。名前を変えたら音声も作り直してください。<br>
+        ・作った絵本を配布・公開する場合は「VOICEVOX:ずんだもん」のようなクレジット表記が必要です。<br>
+        ・音声を埋め込むと絵本ファイルのサイズが大きくなります（1ページあたり数百KB程度）。
+      </div>
+    </details>
+
+    <div id="vvStatus"></div>
+    <button class="btn mclose" id="vvClose">とじる</button>
+  </div>
+</div>
+
+<!-- ========== 台本モーダル ========== -->
+<div id="daihonModal">
+  <div class="mbox">
+    <h2>📝 台本をつくる</h2>
+    <p class="mnote">取り込んだ絵とかんたんな設定から、各ページの文章（台本）の下書きを作ります。できあがった文章はあとから自由に手直しできます。文章内の主人公は <b>{なまえ}</b> で書かれるので、名前の差し替えもそのまま使えます。</p>
+
+    <div class="mfield">
+      <label>おはなしのテーマ</label>
+      <select id="dhTheme">
+        <option value="osanpo">おさんぽ・おでかけ</option>
+        <option value="bouken">ぼうけん・たんけん</option>
+        <option value="oyasumi">おやすみまえ</option>
+        <option value="chousen">はじめてのちょうせん（トイレ・はみがき など）</option>
+        <option value="tanjoubi">おたんじょうび・おいわい</option>
+        <option value="tomodachi">ともだち</option>
+      </select>
+    </div>
+    <div class="mfield">
+      <label>補足（舞台・出てくるもの・伝えたいこと など。自由に）</label>
+      <input type="text" id="dhExtra" placeholder="例：うみ／きょうりゅう／はみがきが すきになる おはなし">
+    </div>
+    <div class="mfield">
+      <label>よむ人</label>
+      <select id="dhAge">
+        <option value="2-3">2〜3さい（ごく短い文）</option>
+        <option value="4-6" selected>4〜6さい（ひらがな中心）</option>
+        <option value="low">しょうがくせい低学年</option>
+      </select>
+    </div>
+    <div class="mfield">
+      <label>ふんいき</label>
+      <select id="dhTone">
+        <option value="yasashii">やさしい・ほんわか</option>
+        <option value="wakuwaku">わくわく・元気</option>
+        <option value="nenne">ねんねの前（しずかに）</option>
+      </select>
+    </div>
+    <div class="mfield">
+      <label>書き込み先</label>
+      <div class="mradio">
+        <label><input type="radio" name="dhWrite" value="empty" checked> 文章が空のページだけ</label>
+        <label><input type="radio" name="dhWrite" value="all"> すべてのページを書き直す</label>
+      </div>
+    </div>
+    <div class="mfield">
+      <label class="mradio" style="margin:0"><label><input type="checkbox" id="dhTitle" checked> タイトルの案も反映する</label></label>
+    </div>
+
+    <div class="mrow">
+      <button class="btn green" id="dhOffline">✨ かんたん台本（オフライン）</button>
+      <button class="btn primary" id="dhAI">🤖 AI台本（絵を見て書く）</button>
+    </div>
+
+    <details id="dhApiBox">
+      <summary>🤖 AI台本の設定（Claude APIキー・モデル）</summary>
+      <div class="mfield" style="margin-top:10px">
+        <label>Claude APIキー（sk-ant-…）</label>
+        <input type="password" id="dhApiKey" placeholder="sk-ant-api03-...">
+      </div>
+      <div class="mfield">
+        <label>モデル</label>
+        <select id="dhModel">
+          <option value="claude-opus-4-8" selected>標準（Claude Opus 4.8・高品質）</option>
+          <option value="claude-haiku-4-5">低コスト（Claude Haiku 4.5・はやい）</option>
+        </select>
+      </div>
+      <div class="keynote">・AI台本は各ページの絵を実際に見て、絵に合った文章を書きます（画像は縮小して送信）。<br>
+      ・費用の目安：1冊（10ページ前後）で数円〜十数円ほど。<br>
+      ・APIキーはこの端末のブラウザ内にだけ保存されます。共用の端末では保存にご注意ください。</div>
+    </details>
+
+    <div id="dhStatus"></div>
+    <button class="btn mclose" id="dhClose">とじる</button>
+  </div>
+</div>
+
+<div id="printArea"></div>
+<div id="toast"></div>
+
+<input type="file" id="fileSingle" accept="image/*" style="display:none">
+<input type="file" id="fileBulk" accept="image/*" multiple style="display:none">
+<input type="file" id="fileBook" accept=".json,application/json" style="display:none">
+
+<script>
+"use strict";
+
+/* ============================================================
+   えほんスタジオ v1
+   - 絵本データ: { id, title, hero:{name}, pages:[{img,text}], createdAt, updatedAt }
+   - 画像は dataURL（外部作成の画像を取り込み時にリサイズ圧縮）
+   - 保存は IndexedDB（画像入りで localStorage の5MB制限を回避）
+   ============================================================ */
+
+/* ---------- IndexedDB ---------- */
+const DB_NAME = "ehon_studio", STORE = "books";
+let _db = null;
+function openDB(){
+  return new Promise((res, rej) => {
+    if (_db) return res(_db);
+    const rq = indexedDB.open(DB_NAME, 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore(STORE, { keyPath: "id" });
+    rq.onsuccess = () => { _db = rq.result; res(_db); };
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function dbAll(){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const rq = db.transaction(STORE).objectStore(STORE).getAll();
+    rq.onsuccess = () => res(rq.result || []);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function dbPut(book){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(book);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function dbDel(id){
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+
+/* ---------- util ---------- */
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._tm); t._tm = setTimeout(() => t.classList.remove("show"), 1800);
+}
+function esc(s){ return (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c])); }
+function heroText(book, text){ return (text || "").split("{なまえ}").join(book.hero?.name || ""); }
+
+/* ---------- 画像取り込み（外部作成画像を第一級で扱う） ---------- */
+const MAX_EDGE = 1400, JPEG_Q = 0.82;
+function importImageFile(file){
+  return new Promise((res, rej) => {
+    // SVGはベクターのままdataURL化（劣化なし・軽量）
+    if (file.type === "image/svg+xml" || /\.svg$/i.test(file.name)) {
+      const fr = new FileReader();
+      fr.onload = () => res("data:image/svg+xml;utf8," + encodeURIComponent(fr.result));
+      fr.onerror = rej;
+      fr.readAsText(file);
+      return;
+    }
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        const scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+        w = Math.round(w * scale); h = Math.round(h * scale);
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext("2d");
+        cx.fillStyle = "#ffffff"; cx.fillRect(0, 0, w, h); // 透過は白地に
+        cx.drawImage(img, 0, 0, w, h);
+        res(cv.toDataURL("image/jpeg", JPEG_Q));
+      };
+      img.onerror = rej;
+      img.src = fr.result;
+    };
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+function sortByName(files){
+  return [...files].sort((a, b) => a.name.localeCompare(b.name, "ja", { numeric: true }));
+}
+
+/* ---------- state ---------- */
+let books = [];          // 一覧キャッシュ
+let cur = null;          // 編集中の絵本
+let saveTimer = null;
+
+function markDirty(){
+  if (!cur) return;
+  cur.updatedAt = Date.now();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => { await dbPut(cur); }, 400);
+}
+
+/* ---------- 本棚 ---------- */
+async function renderLibrary(){
+  books = (await dbAll()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const g = $("bookGrid");
+  g.innerHTML = "";
+  for (const b of books) {
+    const cover = b.pages.find(p => p.img)?.img;
+    const el = document.createElement("div");
+    el.className = "book";
+    el.innerHTML =
+      '<div class="cover">' + (cover ? '<img alt="">' : "📖") + "</div>" +
+      '<div class="meta"><div class="title">' + esc(heroText(b, b.title) || "（タイトルなし）") + "</div>" +
+      '<div class="pages">' + b.pages.length + "ページ　主人公：" + esc(b.hero?.name || "—") + "</div></div>" +
+      '<div class="ops"><button class="btn green" data-act="read">▶ よむ</button>' +
+      '<button class="btn" data-act="edit">✎ つくる</button>' +
+      '<button class="btn menu" data-act="del" title="削除">🗑</button></div>';
+    if (cover) el.querySelector(".cover img").src = cover;
+    el.querySelector('[data-act="read"]').onclick = () => openReader(b);
+    el.querySelector('[data-act="edit"]').onclick = () => openEditor(b);
+    el.querySelector('[data-act="del"]').onclick = async () => {
+      if (!confirm("「" + (b.title || "この絵本") + "」を削除しますか？\n（書き出しファイルがあれば後で読み込み直せます）")) return;
+      await dbDel(b.id); renderLibrary();
+    };
+    g.appendChild(el);
+  }
+  if (!books.length) g.innerHTML = '<div style="color:var(--sub)">まだ絵本がありません。「＋ 新しい絵本」から作りましょう。</div>';
+}
+
+/* ---------- エディタ ---------- */
+function openEditor(book){
+  cur = book;
+  $("viewLibrary").style.display = "none";
+  $("viewEditor").style.display = "";
+  $("hd-back").style.display = "";
+  $("hd-title").textContent = "つくるモード";
+  $("edTitle").value = book.title || "";
+  $("edHero").value = book.hero?.name || "";
+  renderPages();
+}
+function closeEditor(){
+  clearTimeout(saveTimer);
+  if (cur) dbPut(cur);
+  cur = null;
+  $("viewEditor").style.display = "none";
+  $("viewLibrary").style.display = "";
+  $("hd-back").style.display = "none";
+  $("hd-title").textContent = "えほんスタジオ";
+  renderLibrary();
+}
+
+function renderPages(){
+  const list = $("pageList");
+  list.innerHTML = "";
+  cur.pages.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = "pcard";
+    card.innerHTML =
+      '<div class="pno">' + (i + 1) + (p.audio ? "<br>🔊" : "") + "</div>" +
+      '<div class="thumb" title="クリックで画像を選ぶ">' +
+        (p.img ? '<img alt=""><button class="del-img" title="画像を外す">✕</button>'
+               : "🖼<br>クリックして画像を選ぶ<br><span style='font-size:11px'>（ドロップでもOK）</span>") +
+      "</div>" +
+      '<div class="body"><textarea placeholder="このページの文章（{なまえ} が使えます）"></textarea>' +
+      '<div class="pops">' +
+        '<button class="btn" data-a="rec">🎙 こえ</button>' +
+        (p.audio ? '<button class="btn" data-a="play">▶ きく</button><button class="btn" data-a="delaudio">✕ こえ削除</button>' : "") +
+        '<button class="btn" data-a="up">▲ 上へ</button>' +
+        '<button class="btn" data-a="down">▼ 下へ</button>' +
+        '<button class="btn" data-a="del">🗑 ページ削除</button>' +
+      "</div></div>";
+    const thumb = card.querySelector(".thumb");
+    if (p.img) thumb.querySelector("img").src = p.img;
+    thumb.onclick = e => {
+      if (e.target.classList.contains("del-img")) return;
+      pickSingleImage(i);
+    };
+    const delImg = card.querySelector(".del-img");
+    if (delImg) delImg.onclick = e => { e.stopPropagation(); p.img = null; markDirty(); renderPages(); };
+
+    const ta = card.querySelector("textarea");
+    ta.value = p.text || "";
+    ta.oninput = () => { p.text = ta.value; markDirty(); };
+
+    card.querySelector('[data-a="rec"]').onclick = e => toggleRecord(i, e.target);
+    const playBtn = card.querySelector('[data-a="play"]');
+    if (playBtn) playBtn.onclick = () => playAudio(p.audio);
+    const delAudio = card.querySelector('[data-a="delaudio"]');
+    if (delAudio) delAudio.onclick = () => { p.audio = null; markDirty(); renderPages(); };
+
+    card.querySelector('[data-a="up"]').onclick = () => movePage(i, -1);
+    card.querySelector('[data-a="down"]').onclick = () => movePage(i, 1);
+    card.querySelector('[data-a="del"]').onclick = () => {
+      if (cur.pages.length <= 1) return toast("最後の1ページは削除できません");
+      if (!confirm((i + 1) + "ページ目を削除しますか？")) return;
+      cur.pages.splice(i, 1); markDirty(); renderPages();
+    };
+
+    // ページカードへの個別ドロップ
+    card.addEventListener("dragover", e => { e.preventDefault(); card.classList.add("dragover"); });
+    card.addEventListener("dragleave", () => card.classList.remove("dragover"));
+    card.addEventListener("drop", async e => {
+      e.preventDefault(); e.stopPropagation(); card.classList.remove("dragover");
+      const f = [...e.dataTransfer.files].find(f => f.type.startsWith("image/") || /\.svg$/i.test(f.name));
+      if (!f) return;
+      p.img = await importImageFile(f);
+      markDirty(); renderPages(); toast((i + 1) + "ページに画像を入れました");
+    });
+
+    list.appendChild(card);
+  });
+}
+function movePage(i, d){
+  const j = i + d;
+  if (j < 0 || j >= cur.pages.length) return;
+  [cur.pages[i], cur.pages[j]] = [cur.pages[j], cur.pages[i]];
+  markDirty(); renderPages();
+}
+
+let singleTarget = -1;
+function pickSingleImage(i){ singleTarget = i; $("fileSingle").value = ""; $("fileSingle").click(); }
+$("fileSingle").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  if (!f || singleTarget < 0 || !cur) return;
+  cur.pages[singleTarget].img = await importImageFile(f);
+  markDirty(); renderPages(); toast((singleTarget + 1) + "ページに画像を入れました");
+});
+
+/* まとめて取り込み: ファイル名順に 1ページ目から割り当て（足りなければページ自動追加） */
+async function bulkImport(files){
+  const imgs = sortByName([...files].filter(f => f.type.startsWith("image/") || /\.svg$/i.test(f.name)));
+  if (!imgs.length) return toast("画像ファイルがありません");
+  const hasExisting = cur.pages.slice(0, imgs.length).some(p => p.img);
+  if (hasExisting && !confirm("すでに画像が入っているページがあります。\nファイル名順に 1ページ目から上書きしますか？")) return;
+  for (let i = 0; i < imgs.length; i++) {
+    if (i >= cur.pages.length) cur.pages.push({ img: null, text: "" });
+    cur.pages[i].img = await importImageFile(imgs[i]);
+  }
+  markDirty(); renderPages();
+  toast(imgs.length + "枚をページ順に取り込みました");
+}
+$("edBulk").onclick = () => { $("fileBulk").value = ""; $("fileBulk").click(); };
+$("fileBulk").addEventListener("change", e => { if (cur) bulkImport(e.target.files); });
+
+const dz = $("dropzone");
+dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+dz.addEventListener("drop", e => {
+  e.preventDefault(); dz.classList.remove("over");
+  if (cur) bulkImport(e.dataTransfer.files);
+});
+
+$("edTitle").addEventListener("input", () => { if (cur) { cur.title = $("edTitle").value; markDirty(); } });
+$("edHero").addEventListener("input", () => {
+  if (cur) { cur.hero = cur.hero || {}; cur.hero.name = $("edHero").value; markDirty(); }
+});
+$("btnAddPage").onclick = () => { if (cur) { cur.pages.push({ img: null, text: "" }); markDirty(); renderPages(); } };
+$("hd-back").onclick = closeEditor;
+$("edRead").onclick = () => { if (cur) openReader(cur); };
+
+/* ---------- 書き出し / 読み込み ---------- */
+$("edExport").onclick = () => {
+  if (!cur) return;
+  const data = JSON.stringify({ app: "ehon-studio", version: 1, book: cur });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+  a.download = (cur.title || "えほん") + ".ehon.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast("絵本ファイルを書き出しました");
+};
+$("btnImport").onclick = () => { $("fileBook").value = ""; $("fileBook").click(); };
+$("fileBook").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const b = data.book || data;
+    if (!Array.isArray(b.pages)) throw new Error("format");
+    b.id = uid(); b.updatedAt = Date.now();
+    await dbPut(b); renderLibrary();
+    toast("「" + (b.title || "えほん") + "」を読み込みました");
+  } catch { toast("絵本ファイルとして読み込めませんでした"); }
+});
+
+/* ---------- 新規 ---------- */
+$("btnNew").onclick = async () => {
+  const b = {
+    id: uid(), title: "あたらしいえほん", hero: { name: "" },
+    pages: [{ img: null, text: "" }, { img: null, text: "" }, { img: null, text: "" }, { img: null, text: "" }],
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+  await dbPut(b);
+  openEditor(b);
+};
+
+/* ---------- 音声再生（共通・Audio要素は1つを使い回し=iOS対策） ---------- */
+const audioEl = new Audio();
+function playAudio(src){
+  speechSynthesis.cancel();
+  audioEl.pause();
+  audioEl.src = src;
+  audioEl.currentTime = 0;
+  audioEl.play().catch(() => {});
+}
+function stopAudio(){ audioEl.pause(); speechSynthesis.cancel(); }
+function blobToDataURL(blob){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(blob);
+  });
+}
+
+/* ---------- リーダー ---------- */
+let rdBook = null, rdIdx = 0;
+function openReader(book){
+  rdBook = book; rdIdx = 0;
+  $("reader").classList.add("open");
+  renderReaderPage(0);
+}
+function renderReaderPage(dir){
+  const p = rdBook.pages[rdIdx];
+  const imgBox = $("rdImg");
+  imgBox.innerHTML = "";
+  if (p.img) {
+    const im = new Image(); im.src = p.img; im.alt = "";
+    imgBox.appendChild(im);
+  } else {
+    imgBox.innerHTML = '<div class="noimg">（この ページには まだ えが ありません）</div>';
+  }
+  $("rdText").textContent = heroText(rdBook, p.text);
+  $("rdPageNo").textContent = (rdIdx + 1) + " / " + rdBook.pages.length;
+  const st = $("rdStage");
+  st.classList.remove("anim", "animL");
+  void st.offsetWidth; // reflowでアニメ再発火
+  st.classList.add(dir < 0 ? "animL" : "anim");
+  // ページに音声（録音 or AI生成）があれば自動再生（めくり=タップ操作中なのでiOSでも再生可）
+  if (p.audio) playAudio(p.audio);
+}
+function rdMove(d){
+  stopAudio();
+  const n = rdIdx + d;
+  if (n < 0 || n >= rdBook.pages.length) return;
+  rdIdx = n; renderReaderPage(d);
+}
+$("rdNext").onclick = () => rdMove(1);
+$("rdPrev").onclick = () => rdMove(-1);
+$("rdClose").onclick = () => { stopAudio(); $("reader").classList.remove("open"); rdBook = null; };
+$("rdSpeak").onclick = () => {
+  if (!rdBook) return;
+  const p = rdBook.pages[rdIdx];
+  if (p.audio) { playAudio(p.audio); return; }   // 録音/AI音声を優先
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(heroText(rdBook, p.text));
+  u.lang = "ja-JP"; u.rate = 0.85;
+  speechSynthesis.speak(u);
+};
+// スワイプ
+let tX = null;
+$("rdStage").addEventListener("touchstart", e => { tX = e.touches[0].clientX; }, { passive: true });
+$("rdStage").addEventListener("touchend", e => {
+  if (tX == null) return;
+  const dx = e.changedTouches[0].clientX - tX; tX = null;
+  if (Math.abs(dx) > 40) rdMove(dx < 0 ? 1 : -1);
+}, { passive: true });
+document.addEventListener("keydown", e => {
+  if (!$("reader").classList.contains("open")) return;
+  if (e.key === "ArrowRight" || e.key === " ") rdMove(1);
+  else if (e.key === "ArrowLeft") rdMove(-1);
+  else if (e.key === "Escape") $("rdClose").click();
+});
+
+/* ---------- 印刷（A4横・1ページ1枚 + 表紙） ---------- */
+$("edPrint").onclick = () => {
+  if (!cur) return;
+  const pa = $("printArea");
+  const coverImg = cur.pages.find(p => p.img)?.img;
+  let html = '<div class="psheet cover">' +
+    (coverImg ? '<img src="' + coverImg + '" alt="">' : "") +
+    '<div class="ptitle">' + esc(heroText(cur, cur.title)) + "</div>" +
+    (cur.hero?.name ? '<div class="pauthor">しゅじんこう：' + esc(cur.hero.name) + "</div>" : "") +
+    "</div>";
+  cur.pages.forEach((p, i) => {
+    html += '<div class="psheet" style="position:relative">' +
+      (p.img ? '<img src="' + p.img + '" alt="">' : "") +
+      '<div class="ptext">' + esc(heroText(cur, p.text)) + "</div>" +
+      '<div class="pnum">' + (i + 1) + "</div></div>";
+  });
+  pa.innerHTML = html;
+  setTimeout(() => window.print(), 100);
+};
+
+/* ============================================================
+   台本づくり
+   - かんたん台本: オフラインの起承転結テンプレート
+   - AI台本: Claude API をブラウザから直接呼ぶ
+     （anthropic-dangerous-direct-browser-access ヘッダー + 構造化出力）
+   ============================================================ */
+
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+/* ---------- かんたん台本（オフライン） ---------- */
+const DH_TPL = {
+  osanpo: {
+    title: ["{なまえ}の たのしい おさんぽ", "{なまえ}と {そえ}の いちにち"],
+    opening: [
+      "あるひ、{なまえ}は おそとへ おでかけすることに しました。「いってきまーす！」",
+      "きょうは とっても いい てんき。{なまえ}は {そえ}へ しゅっぱつです。"
+    ],
+    middle: [
+      "みちの とちゅうで、すてきな ものを みつけました。「これは なんだろう？」",
+      "かぜが そよそよ。{なまえ}は るんるん きぶんで すすみます。",
+      "むこうから ともだちが やってきました。「いっしょに いこう！」",
+      "ちょっと ひとやすみ。おやつを たべたら げんきが もりもり わいてきました。",
+      "あたらしい はっけんが いっぱい。{なまえ}の めが きらきら かがやきます。"
+    ],
+    closing: [
+      "たのしいことが いっぱいの いちにちでした。{なまえ}は にこにこ おうちへ かえりました。",
+      "「また いこうね」{なまえ}は きょうの ぼうけんを おもいだしながら ねむりました。"
+    ]
+  },
+  bouken: {
+    title: ["{なまえ}の だいぼうけん", "{なまえ}と ふしぎな {そえ}"],
+    opening: [
+      "{なまえ}は ちずを ひろげました。「よし、{そえ}へ ぼうけんに しゅっぱつだ！」",
+      "あるひ、{なまえ}のもとに ふしぎな てがみが とどきました。ぼうけんの はじまりです。"
+    ],
+    middle: [
+      "すすんでいくと、みたことのない けしきが ひろがっていました。「わあ、すごい！」",
+      "おおきな かべが たちふさがりました。でも {なまえ}は あきらめません。",
+      "たすけてくれる なかまに であいました。「いっしょなら こわくないね」",
+      "とうとう てがかりを みつけました。ゴールは もう すぐそこです。",
+      "どきどき わくわく。{なまえ}の ぼうけんは つづきます。"
+    ],
+    closing: [
+      "やったー！ {なまえ}は とうとう やりとげました。むねを はって おうちへ かえります。",
+      "ぼうけんを おえた {なまえ}は、ひとまわり たくましくなったのでした。"
+    ]
+  },
+  oyasumi: {
+    title: ["{なまえ}の おやすみなさい", "おつきさまと {なまえ}"],
+    opening: [
+      "よるに なりました。{なまえ}は ねんねの じゅんびを はじめます。",
+      "おそらに おつきさまが のぼりました。{なまえ}、そろそろ ねる じかんですよ。"
+    ],
+    middle: [
+      "はを みがいて、ぱじゃまに きがえて。じゅんびは ばっちりです。",
+      "まどの そとで、おほしさまが きらきら ひかっています。",
+      "だいすきな ぬいぐるみと いっしょに、おふとんに もぐりこみました。",
+      "めを つむると、きょうの たのしかったことが うかんできます。",
+      "「おやすみ」の こえが、そっと きこえてきました。"
+    ],
+    closing: [
+      "{なまえ}は すやすや ゆめのなかへ。いい ゆめが みられますように。おやすみなさい。",
+      "おつきさまが やさしく みまもっています。{なまえ}、おやすみなさい。また あした。"
+    ]
+  },
+  chousen: {
+    title: ["{なまえ}の はじめての ちょうせん", "できたよ！ {なまえ}"],
+    opening: [
+      "きょう、{なまえ}は はじめて {そえ}に ちょうせんします。ちょっぴり どきどき。",
+      "「じぶんで やってみる！」{なまえ}が げんきに てを あげました。"
+    ],
+    middle: [
+      "さいしょは うまくいきません。でも だいじょうぶ、ゆっくりで いいんだよ。",
+      "「こうかな？ こうかな？」{なまえ}は なんども ためしてみます。",
+      "みててくれる ひとが いるから、がんばれる。もう いちど ちょうせん！",
+      "あれ？ さっきより じょうずに できてる。{なまえ}は うれしくなりました。",
+      "こつを つかんだ {なまえ}。かおが きりっと しています。"
+    ],
+    closing: [
+      "「できたー！」{なまえ}は おおよろこび。がんばった じぶんに はなまるです。",
+      "できるように なった {なまえ}は、あしたも やってみたくて うずうずしています。"
+    ]
+  },
+  tanjoubi: {
+    title: ["{なまえ}の おたんじょうび", "おめでとう！ {なまえ}"],
+    opening: [
+      "きょうは まちにまった {なまえ}の おたんじょうび。あさから そわそわ わくわく。",
+      "「おめでとう！」の こえで {なまえ}の いちにちが はじまりました。"
+    ],
+    middle: [
+      "おへやには かざりつけ。テーブルには ごちそうが ならんでいます。",
+      "だいすきな みんなが あつまってくれました。「おめでとう！」",
+      "ろうそくを ふーっ。ねがいごとは ないしょです。",
+      "プレゼントを あけると、なかから すてきな ものが でてきました。",
+      "みんなで わらって、うたって、たのしい じかんは あっというま。"
+    ],
+    closing: [
+      "「うまれてきてくれて ありがとう」{なまえ}は しあわせな きもちで ねむりました。",
+      "すてきな おたんじょうびに なりました。{なまえ}、これからも すくすく おおきくなあれ。"
+    ]
+  },
+  tomodachi: {
+    title: ["{なまえ}と ともだち", "なかよし {なまえ}"],
+    opening: [
+      "{なまえ}には だいすきな ともだちが います。きょうも いっしょに あそぼうね。",
+      "こうえんで {なまえ}が てを ふりました。「おーい、こっちだよ！」"
+    ],
+    middle: [
+      "ふたりで あそぶと、なんでも たのしくなります。",
+      "あれれ、ちょっと けんかに なっちゃった。ふたりとも むすっと しています。",
+      "「さっきは ごめんね」「ぼくこそ ごめんね」なかなおりの あくしゅです。",
+      "こまっていたら、そっと たすけてくれました。ともだちって あったかいな。",
+      "ないしょばなしを して、ふたりで くすくす わらいました。"
+    ],
+    closing: [
+      "「また あした あそぼうね！」{なまえ}は おおきく てを ふりました。",
+      "ともだちが いるって すてきだな。{なまえ}は こころが ぽかぽかしました。"
+    ]
+  }
+};
+
+function dhSettings(){
+  return {
+    theme: $("dhTheme").value,
+    extra: $("dhExtra").value.trim(),
+    age: $("dhAge").value,
+    tone: $("dhTone").value,
+    writeMode: document.querySelector('input[name="dhWrite"]:checked').value,
+    useTitle: $("dhTitle").checked
+  };
+}
+
+function makeOfflineScript(st, n){
+  const t = DH_TPL[st.theme];
+  const fill = s => s.split("{そえ}").join(st.extra || "すてきな ばしょ");
+  const used = new Set();
+  const pickFresh = arr => {
+    const rest = arr.filter(x => !used.has(x));
+    const s = pick(rest.length ? rest : arr);
+    used.add(s);
+    return s;
+  };
+  const pages = [];
+  for (let i = 0; i < n; i++) {
+    let s;
+    if (i === 0) s = pickFresh(t.opening);
+    else if (i === n - 1) s = pickFresh(t.closing);
+    else s = pickFresh(t.middle);
+    s = fill(s);
+    if (st.age === "2-3") s = s.split("。")[0] + "。";          // ごく短く
+    if (st.tone === "nenne" && i === n - 1 && !s.includes("おやすみ")) s += " おやすみなさい。";
+    pages.push(s);
+  }
+  return { title: fill(pick(t.title)), pages };
+}
+
+function applyScript(result, st){
+  let wrote = 0;
+  result.pages.forEach((text, i) => {
+    if (i >= cur.pages.length) return;
+    if (st.writeMode === "empty" && (cur.pages[i].text || "").trim()) return;
+    cur.pages[i].text = text;
+    wrote++;
+  });
+  if (st.useTitle && result.title) cur.title = result.title;
+  markDirty();
+  renderPages();
+  $("edTitle").value = cur.title || "";
+  return wrote;
+}
+
+/* ---------- AI台本（Claude API 直接呼び出し） ---------- */
+const THEME_LABEL = {
+  osanpo: "おさんぽ・おでかけ", bouken: "ぼうけん・たんけん", oyasumi: "おやすみ前",
+  chousen: "はじめての挑戦", tanjoubi: "誕生日・お祝い", tomodachi: "ともだち"
+};
+const AGE_LABEL = { "2-3": "2〜3歳（1ページ1文のごく短い文）", "4-6": "4〜6歳（ひらがな中心、1ページ1〜2文)", "low": "小学校低学年（ひらがな主体で漢字なし、1ページ2文程度）" };
+const TONE_LABEL = { yasashii: "やさしくほんわか", wakuwaku: "わくわく元気", nenne: "寝かしつけ向けに静かに" };
+
+// APIへ送る用に縮小JPEG化（SVGもここでラスタライズされる）
+function rasterizeForApi(dataURL, maxEdge = 600){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.max(1, Math.round(img.width * scale));
+      cv.height = Math.max(1, Math.round(img.height * scale));
+      const cx = cv.getContext("2d");
+      cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
+      cx.drawImage(img, 0, 0, cv.width, cv.height);
+      res(cv.toDataURL("image/jpeg", 0.8).split(",")[1]); // base64のみ
+    };
+    img.onerror = rej;
+    img.src = dataURL;
+  });
+}
+
+async function makeAiScript(st, book){
+  const apiKey = $("dhApiKey").value.trim();
+  if (!apiKey) throw new Error("APIキーを入力してください（AI台本の設定を開いてください）");
+  localStorage.setItem("ehon_api_key", apiKey);
+  localStorage.setItem("ehon_api_model", $("dhModel").value);
+
+  const n = book.pages.length;
+  const content = [];
+  for (let i = 0; i < n; i++) {
+    content.push({ type: "text", text: `【${i + 1}ページ目の絵】` });
+    if (book.pages[i].img) {
+      const b64 = await rasterizeForApi(book.pages[i].img);
+      content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } });
+    } else {
+      content.push({ type: "text", text: "（このページの絵はまだありません。前後の流れから自然な文章を書いてください）" });
+    }
+  }
+  content.push({
+    type: "text",
+    text:
+`上の${n}枚の絵は、1冊の絵本のページを順番に並べたものです。この絵をよく見て、${n}ページ分の絵本の文章（台本）を書いてください。
+
+条件:
+- テーマ: ${THEME_LABEL[st.theme]}${st.extra ? `／補足: ${st.extra}` : ""}
+- 読者: ${AGE_LABEL[st.age]}
+- 雰囲気: ${TONE_LABEL[st.tone]}
+- 主人公の名前は書かず、必ず「{なまえ}」というプレースホルダで書く
+- 各ページの文章は、そのページの絵に描かれているものに合わせる
+- ${n}ページ全体でひとつのお話として起承転結がつながるようにする
+- 分かち書き（文節ごとにスペース）で、読み聞かせしやすい文にする
+- タイトル案もひとつ考える（「{なまえ}」を使ってよい）
+
+pages配列はちょうど${n}要素にしてください。`
+  });
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: $("dhModel").value,
+      max_tokens: 4000,
+      system: "あなたは日本語の絵本作家です。子どもに読み聞かせるやさしい文章を書きます。",
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              pages: { type: "array", items: { type: "string" } }
+            },
+            required: ["title", "pages"],
+            additionalProperties: false
+          }
+        }
+      },
+      messages: [{ role: "user", content }]
+    })
+  });
+
+  if (!res.ok) {
+    let msg = "HTTP " + res.status;
+    try { msg = (await res.json()).error?.message || msg; } catch {}
+    if (res.status === 401) msg = "APIキーが正しくありません";
+    if (res.status === 429) msg = "利用制限に達しています。少し待ってからもう一度お試しください";
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  if (data.stop_reason === "refusal") throw new Error("AIが生成をお断りしました。内容を変えてお試しください");
+  if (data.stop_reason === "max_tokens") throw new Error("出力が長すぎて途中で切れました。ページ数を減らしてお試しください");
+  const text = (data.content || []).find(b => b.type === "text")?.text;
+  if (!text) throw new Error("AIの応答が空でした");
+  const result = JSON.parse(text);
+  if (!Array.isArray(result.pages)) throw new Error("AIの応答形式が不正でした");
+  return result;
+}
+
+/* ---------- モーダルの配線 ---------- */
+function dhStatus(msg, isErr){
+  const el = $("dhStatus");
+  el.textContent = msg || "";
+  el.classList.toggle("err", !!isErr);
+}
+$("edDaihon").onclick = () => {
+  if (!cur) return;
+  $("dhApiKey").value = localStorage.getItem("ehon_api_key") || "";
+  $("dhModel").value = localStorage.getItem("ehon_api_model") || "claude-opus-4-8";
+  dhStatus("");
+  $("daihonModal").classList.add("open");
+};
+$("dhClose").onclick = () => $("daihonModal").classList.remove("open");
+$("daihonModal").addEventListener("click", e => {
+  if (e.target === $("daihonModal")) $("daihonModal").classList.remove("open");
+});
+
+$("dhOffline").onclick = () => {
+  if (!cur) return;
+  const st = dhSettings();
+  const wrote = applyScript(makeOfflineScript(st, cur.pages.length), st);
+  dhStatus(wrote ? `✨ ${wrote}ページに台本を入れました。とじて手直ししてください` :
+    "書き込めるページがありませんでした（「すべてのページを書き直す」をお試しください)", !wrote);
+};
+
+let aiBusy = false;
+$("dhAI").onclick = async () => {
+  if (!cur || aiBusy) return;
+  const st = dhSettings();
+  aiBusy = true;
+  $("dhAI").disabled = true;
+  try {
+    dhStatus("🤖 絵を見ながら台本を書いています…（数十秒かかることがあります）");
+    const result = await makeAiScript(st, cur);
+    const wrote = applyScript(result, st);
+    dhStatus(wrote ? `🤖 ${wrote}ページに台本を入れました。とじて確認してください` :
+      "書き込めるページがありませんでした（「すべてのページを書き直す」をお試しください)", !wrote);
+  } catch (e) {
+    if (!navigator.onLine) dhStatus("インターネットに接続されていません。オフラインでは「かんたん台本」をお使いください", true);
+    else dhStatus("エラー: " + e.message, true);
+  } finally {
+    aiBusy = false;
+    $("dhAI").disabled = false;
+  }
+};
+
+/* ============================================================
+   音声づくり
+   - かぞくの声: MediaRecorderで録音（Safari=mp4/Chrome=webm自動選択）
+   - AI音声: VOICEVOXローカルAPI(127.0.0.1:50021)で一括生成
+   - どちらも pages[].audio に dataURL で保存（絵本と一緒に持ち運べる）
+   ============================================================ */
+
+/* ---------- 🎙 かぞくの声（ページごと録音・上限30秒） ---------- */
+let recState = null;
+async function toggleRecord(i, btn){
+  if (recState) { recState.mr.stop(); return; }
+  if (!navigator.mediaDevices?.getUserMedia) return toast("この環境ではマイクを使えません");
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mime = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" :
+                 MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+    const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    const chunks = [];
+    mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = async () => {
+      clearInterval(recState?.timer);
+      stream.getTracks().forEach(t => t.stop());
+      recState = null;
+      const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+      if (blob.size < 200) { renderPages(); return toast("録音できませんでした"); }
+      cur.pages[i].audio = await blobToDataURL(blob);
+      markDirty(); renderPages();
+      toast((i + 1) + "ページに こえを入れました");
+    };
+    let sec = 0;
+    recState = {
+      mr, stream,
+      timer: setInterval(() => {
+        sec++;
+        btn.textContent = "⏹ とめる " + sec + "s";
+        if (sec >= 30) mr.stop();  // 上限30秒
+      }, 1000)
+    };
+    btn.textContent = "⏹ とめる 0s";
+    btn.classList.add("recing");
+    mr.start();
+  } catch {
+    toast("マイクを使えませんでした（ブラウザのマイク許可を確認してください）");
+  }
+}
+
+/* ---------- 🔊 AI音声（VOICEVOX） ---------- */
+const VV = "http://127.0.0.1:50021";
+function vvStatus(msg, isErr){
+  const el = $("vvStatus");
+  el.textContent = msg || "";
+  el.classList.toggle("err", !!isErr);
+}
+async function vvSynth(text, speaker){
+  const q = await fetch(VV + "/audio_query?speaker=" + speaker + "&text=" + encodeURIComponent(text), { method: "POST" });
+  if (!q.ok) throw new Error("audio_query " + q.status);
+  const query = await q.json();
+  query.outputSamplingRate = 16000;  // 容量節約（十分な音質）
+  query.outputStereo = false;
+  const s = await fetch(VV + "/synthesis?speaker=" + speaker, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(query)
+  });
+  if (!s.ok) throw new Error("synthesis " + s.status);
+  return blobToDataURL(await s.blob());
+}
+async function vvLoadSpeakers(){
+  try {
+    const r = await fetch(VV + "/speakers");
+    if (!r.ok) return false;
+    const sp = await r.json();
+    const sel = $("vvSpeaker");
+    const prev = sel.value;
+    sel.innerHTML = "";
+    sp.forEach(s => {
+      const style = s.styles.find(st => st.name === "ノーマル") || s.styles[0];
+      if (!style) return;
+      const o = document.createElement("option");
+      o.value = style.id;
+      o.textContent = s.name;
+      sel.appendChild(o);
+    });
+    if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+    return true;
+  } catch { return false; }
+}
+
+$("edVoice").onclick = async () => {
+  if (!cur) return;
+  vvStatus("");
+  $("voiceModal").classList.add("open");
+  const ok = await vvLoadSpeakers();
+  vvStatus(ok ? "✅ VOICEVOXに接続できています" : "VOICEVOXが起動していません（AI生成にはMacでVOICEVOXアプリを起動してください。録音・再生には不要です）", !ok);
+};
+$("vvClose").onclick = () => $("voiceModal").classList.remove("open");
+$("voiceModal").addEventListener("click", e => {
+  if (e.target === $("voiceModal")) $("voiceModal").classList.remove("open");
+});
+
+let vvBusy = false;
+$("vvGen").onclick = async () => {
+  if (!cur || vvBusy) return;
+  const overwrite = document.querySelector('input[name="vvWrite"]:checked').value === "all";
+  const speaker = $("vvSpeaker").value;
+  const targets = cur.pages
+    .map((p, i) => ({ p, i }))
+    .filter(x => (x.p.text || "").trim() && (overwrite || !x.p.audio));
+  if (!targets.length) return vvStatus("生成するページがありません（文章が入っているページが対象です）", true);
+  vvBusy = true; $("vvGen").disabled = true;
+  try {
+    for (let k = 0; k < targets.length; k++) {
+      vvStatus(`🔊 生成中… ${k + 1} / ${targets.length} ページ`);
+      const { p, i } = targets[k];
+      p.audio = await vvSynth(heroText(cur, p.text), speaker);
+      markDirty();
+    }
+    renderPages();
+    vvStatus(`✅ ${targets.length}ページの音声を作りました。「よんでみる」で確認してください`);
+  } catch (e) {
+    vvStatus(e.message.includes("Failed to fetch")
+      ? "VOICEVOXに接続できません。MacでVOICEVOXアプリを起動してから、もう一度お試しください"
+      : "エラー: " + e.message, true);
+  } finally {
+    vvBusy = false; $("vvGen").disabled = false;
+  }
+};
+$("vvClear").onclick = () => {
+  if (!cur) return;
+  if (!confirm("この絵本の音声（録音・AI音声とも）をすべて削除しますか？")) return;
+  cur.pages.forEach(p => { p.audio = null; });
+  markDirty(); renderPages();
+  vvStatus("音声をすべて削除しました");
+};
+
+/* ---------- サンプル絵本（初回のみ投入） ---------- */
+function svgURI(s){ return "data:image/svg+xml;utf8," + encodeURIComponent(s); }
+function svgWrap(inner){
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">' + inner + "</svg>";
+}
+function rabbit(x, y, s){
+  return '<g transform="translate(' + x + "," + y + ") scale(" + s + ')">' +
+    '<ellipse cx="-14" cy="-48" rx="10" ry="28" fill="#fff" stroke="#e3d2c8" stroke-width="2"/>' +
+    '<ellipse cx="14" cy="-48" rx="10" ry="28" fill="#fff" stroke="#e3d2c8" stroke-width="2"/>' +
+    '<ellipse cx="-14" cy="-44" rx="4.5" ry="17" fill="#ffc7d1"/>' +
+    '<ellipse cx="14" cy="-44" rx="4.5" ry="17" fill="#ffc7d1"/>' +
+    '<ellipse cx="0" cy="52" rx="40" ry="44" fill="#fff" stroke="#e3d2c8" stroke-width="2"/>' +
+    '<circle cx="0" cy="-4" r="36" fill="#fff" stroke="#e3d2c8" stroke-width="2"/>' +
+    '<circle cx="-13" cy="-8" r="4.5" fill="#5a4a42"/><circle cx="13" cy="-8" r="4.5" fill="#5a4a42"/>' +
+    '<ellipse cx="-22" cy="3" rx="6" ry="4" fill="#ffd6dd"/><ellipse cx="22" cy="3" rx="6" ry="4" fill="#ffd6dd"/>' +
+    '<path d="M-5 4 Q0 9 5 4" stroke="#5a4a42" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>';
+}
+function bear(x, y, s){
+  return '<g transform="translate(' + x + "," + y + ") scale(" + s + ')">' +
+    '<circle cx="-24" cy="-30" r="12" fill="#c98f5e"/><circle cx="24" cy="-30" r="12" fill="#c98f5e"/>' +
+    '<ellipse cx="0" cy="52" rx="42" ry="46" fill="#c98f5e"/>' +
+    '<circle cx="0" cy="-2" r="36" fill="#c98f5e"/>' +
+    '<ellipse cx="0" cy="10" rx="16" ry="12" fill="#f0d5b8"/>' +
+    '<circle cx="-13" cy="-8" r="4.5" fill="#4a352a"/><circle cx="13" cy="-8" r="4.5" fill="#4a352a"/>' +
+    '<circle cx="0" cy="6" r="4" fill="#4a352a"/>' +
+    '<path d="M-5 14 Q0 18 5 14" stroke="#4a352a" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>';
+}
+function tree(x, y, s){
+  return '<g transform="translate(' + x + "," + y + ") scale(" + s + ')">' +
+    '<rect x="-10" y="0" width="20" height="50" rx="6" fill="#a67c52"/>' +
+    '<circle cx="0" cy="-30" r="46" fill="#8fbf7f"/><circle cx="-32" cy="-6" r="30" fill="#9fca8e"/><circle cx="32" cy="-6" r="30" fill="#9fca8e"/></g>';
+}
+function sampleBook(){
+  const sky = '<rect width="800" height="600" fill="#d3ecfb"/>';
+  const ground = '<rect y="440" width="800" height="160" fill="#d8efc9"/>';
+  const sun = '<circle cx="690" cy="90" r="46" fill="#ffd97a"/>';
+  const cloud = (x, y) => '<g fill="#fff"><ellipse cx="' + x + '" cy="' + y + '" rx="52" ry="24"/><ellipse cx="' + (x + 40) + '" cy="' + (y - 12) + '" rx="36" ry="20"/></g>';
+  const pages = [
+    { text: "あるあさ、うさぎの{なまえ}は げんきに めをさましました。「きょうは なにが みつかるかな？」",
+      svg: '<rect width="800" height="600" fill="#fdf3e3"/><rect y="470" width="800" height="130" fill="#e8d8c4"/>' +
+           '<rect x="80" y="110" width="200" height="180" rx="14" fill="#d3ecfb" stroke="#c9b8a4" stroke-width="8"/>' +
+           '<circle cx="180" cy="180" r="34" fill="#ffd97a"/>' +
+           '<rect x="380" y="330" width="340" height="150" rx="20" fill="#f4b8c1"/>' +
+           '<rect x="380" y="300" width="90" height="80" rx="14" fill="#fff"/>' + rabbit(560, 300, 1.0) },
+    { text: "{なまえ}は もりへ おさんぽに でかけました。とりさんが うたっています。",
+      svg: sky + sun + cloud(180, 100) + ground + tree(140, 400, 1.1) + tree(660, 380, 1.3) +
+           '<path d="M0 520 Q400 480 800 530 L800 600 L0 600 Z" fill="#e8d9b8"/>' + rabbit(400, 420, 1.1) +
+           '<g transform="translate(300,180)"><ellipse cx="0" cy="0" rx="16" ry="12" fill="#7fb3d9"/><circle cx="14" cy="-6" r="8" fill="#7fb3d9"/><circle cx="17" cy="-8" r="1.8" fill="#333"/><path d="M22 -6 L30 -4 L22 -1 Z" fill="#f4a83d"/><path d="M-6 -2 Q-14 -10 -4 -8" fill="#6aa3cc"/></g>' +
+           '<text x="330" y="150" font-size="22" fill="#7fa8c9">♪</text><text x="360" y="130" font-size="16" fill="#7fa8c9">♪</text>' },
+    { text: "すると そらに おおきな にじが かかりました。「わあ、きれい！」",
+      svg: sky + ground + cloud(120, 140) + cloud(600, 100) +
+           '<path d="M40 440 A360 360 0 0 1 760 440" stroke="#f28b82" stroke-width="22" fill="none"/>' +
+           '<path d="M70 440 A330 330 0 0 1 730 440" stroke="#ffd97a" stroke-width="22" fill="none"/>' +
+           '<path d="M100 440 A300 300 0 0 1 700 440" stroke="#9fca8e" stroke-width="22" fill="none"/>' +
+           '<path d="M130 440 A270 270 0 0 1 670 440" stroke="#7fb3d9" stroke-width="22" fill="none"/>' +
+           rabbit(400, 440, 1.15) },
+    { text: "にじの したで くまの ぽんちゃんに あいました。「いっしょに みよう！」",
+      svg: sky + ground +
+           '<path d="M40 440 A360 360 0 0 1 760 440" stroke="#f28b82" stroke-width="18" fill="none" opacity=".8"/>' +
+           '<path d="M64 440 A336 336 0 0 1 736 440" stroke="#ffd97a" stroke-width="18" fill="none" opacity=".8"/>' +
+           '<path d="M88 440 A312 312 0 0 1 712 440" stroke="#9fca8e" stroke-width="18" fill="none" opacity=".8"/>' +
+           rabbit(300, 440, 1.05) + bear(520, 438, 1.05) +
+           '<path d="M385 355 Q400 340 415 355" stroke="#e8845e" stroke-width="4" fill="none" stroke-linecap="round"/>' },
+    { text: "ふたりは おやつを たべながら にじを ながめました。おいしいね、たのしいね。",
+      svg: sky + sun + ground + tree(700, 380, 1.0) +
+           '<ellipse cx="400" cy="500" rx="260" ry="60" fill="#f4d9e2"/>' +
+           rabbit(280, 430, 1.0) + bear(520, 428, 1.0) +
+           '<circle cx="400" cy="490" r="34" fill="#fff"/><circle cx="390" cy="486" r="9" fill="#e0a35e"/><circle cx="412" cy="492" r="9" fill="#e0a35e"/>' },
+    { text: "ゆうがた、{なまえ}は おうちに かえりました。「きょうは いい ひ だったな」……おやすみなさい。",
+      svg: '<rect width="800" height="600" fill="#3d4a6b"/><rect y="470" width="800" height="130" fill="#2e3a56"/>' +
+           '<circle cx="660" cy="110" r="40" fill="#f4e9b8"/>' +
+           '<circle cx="150" cy="90" r="3" fill="#fff"/><circle cx="260" cy="150" r="2.5" fill="#fff"/><circle cx="90" cy="200" r="2" fill="#fff"/><circle cx="480" cy="80" r="2.5" fill="#fff"/><circle cx="560" cy="200" r="2" fill="#fff"/>' +
+           '<rect x="300" y="270" width="220" height="200" fill="#8a6f5a"/><path d="M280 280 L410 190 L540 280 Z" fill="#6e5546"/>' +
+           '<rect x="330" y="320" width="60" height="60" rx="6" fill="#ffd97a"/>' +
+           '<rect x="430" y="340" width="56" height="130" rx="8" fill="#5a4636"/>' + rabbit(400 + 190, 440, 0.9) }
+  ];
+  return {
+    id: uid(),
+    title: "{なまえ}と にじの いちにち",
+    hero: { name: "うーちゃん" },
+    pages: pages.map(p => ({ img: svgURI(svgWrap(p.svg)), text: p.text })),
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+
+/* ---------- init ---------- */
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+(async function init(){
+  try {
+    if (!localStorage.getItem("ehon_seeded")) {
+      const all = await dbAll();
+      if (!all.length) await dbPut(sampleBook());
+      localStorage.setItem("ehon_seeded", "1");
+    }
+  } catch (e) { console.warn("seed skip", e); }
+  renderLibrary();
+})();
+</script>
+</body>
+</html>
