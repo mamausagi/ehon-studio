@@ -65,12 +65,18 @@
     overflow:hidden; display:flex; flex-direction:column;
   }
   .book .cover{
-    aspect-ratio:4/3; background:#f5ede2 center/cover no-repeat;
-    display:flex; align-items:center; justify-content:center; font-size:44px;
+    aspect-ratio:4/3; position:relative; overflow:hidden; background:#f5ede2;
   }
   .book .cover img{width:100%; height:100%; object-fit:cover; display:block;}
+  .book .cover.noimg{background:linear-gradient(160deg,#fdf3e3,#f2cf9f);}
+  .book .cover .gscrim{position:absolute; inset:0; background:linear-gradient(to top, rgba(50,38,28,.55), rgba(50,38,28,0) 58%);}
+  .book .cover .gtitle{
+    position:absolute; left:10px; right:10px; bottom:9px; text-align:center;
+    color:#fff; font-weight:800; font-size:15px; line-height:1.3;
+    text-shadow:0 1px 5px rgba(0,0,0,.7); letter-spacing:.5px;
+  }
+  .book .cover .gemoji{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:40px; opacity:.35;}
   .book .meta{padding:10px 12px 4px;}
-  .book .meta .title{font-weight:800; font-size:15px; line-height:1.4;}
   .book .meta .pages{font-size:12px; color:var(--sub); margin-top:2px;}
   .book .ops{display:flex; gap:6px; padding:10px 12px 12px;}
   .book .ops .btn{flex:1; padding:9px 4px; font-size:13px; border-radius:10px; box-shadow:none;}
@@ -148,10 +154,29 @@
     padding:16px 22px 20px; font-size:clamp(16px, 2.6vw, 24px); line-height:1.9;
     min-height:76px; letter-spacing:.5px;
   }
-  .rd-stage.anim .rd-inner{animation:pagein .35s ease;}
+  .rd-stage.anim .rd-inner, .rd-stage.anim .rd-cover{animation:pagein .35s ease;}
   @keyframes pagein{from{opacity:0; transform:translateX(26px);} to{opacity:1; transform:none;}}
   @keyframes pageinL{from{opacity:0; transform:translateX(-26px);} to{opacity:1; transform:none;}}
-  .rd-stage.animL .rd-inner{animation:pageinL .35s ease;}
+  .rd-stage.animL .rd-inner, .rd-stage.animL .rd-cover{animation:pageinL .35s ease;}
+
+  /* ---------- 表紙（共通コンポーネント） ---------- */
+  .rd-cover{ display:none; width:100%; aspect-ratio:4/3; position:relative; }
+  .cover-box{ position:relative; width:100%; aspect-ratio:4/3; overflow:hidden; background:#f5ede2; }
+  .cover-art{ position:absolute; inset:0; }
+  .cover-art img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .cover-art.noimg{ background:linear-gradient(160deg,#fdf3e3,#f2cf9f); }
+  .cover-art.noimg::after{ content:"📖"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22%; opacity:.28; }
+  .cover-scrim{ position:absolute; inset:0; background:linear-gradient(to top, rgba(50,38,28,.42), rgba(50,38,28,0) 52%); }
+  .cover-frame{ position:absolute; inset:3.2%; border:0.9% solid rgba(255,255,255,.8); border-radius:10px; box-shadow:0 0 0 0.35% rgba(232,132,94,.55) inset; }
+  .cover-plate{
+    position:absolute; left:8%; right:8%; bottom:8%;
+    background:rgba(255,253,247,.93); border-radius:14px; padding:4.5% 5%;
+    text-align:center; box-shadow:0 4px 16px rgba(0,0,0,.25);
+  }
+  .cover-plate .ctitle{ font-weight:800; color:#4a3f38; line-height:1.35; letter-spacing:1px; font-size:clamp(18px,4.4cqw,42px); }
+  .cover-plate .cbyline{ margin-top:5%; font-size:clamp(10px,2cqw,17px); color:#8a7a6e; }
+  .cover-plate::before{ content:"✦"; color:#e8845e; font-size:clamp(11px,2.2cqw,20px); display:block; margin-bottom:2%; }
+  .cover-box{ container-type:inline-size; }
   .rd-nav{
     position:absolute; top:0; bottom:0; width:34%;
   }
@@ -175,8 +200,12 @@
     }
     .psheet img{max-width:100%; max-height:70vh; object-fit:contain;}
     .psheet .ptext{font-size:20pt; line-height:1.9; text-align:center; max-width:90%;}
-    .psheet.cover .ptitle{font-size:34pt; font-weight:800; text-align:center;}
-    .psheet.cover .pauthor{font-size:14pt; color:#666;}
+    .psheet.cover{border:3pt double #e8845e; border-radius:6pt; padding:10mm; box-sizing:border-box;}
+    .psheet.cover .pcover-art{width:78%; text-align:center;}
+    .psheet.cover .pcover-art img{width:100%; max-height:58vh; object-fit:contain;}
+    .psheet.cover .ptitle{font-size:32pt; font-weight:800; text-align:center; line-height:1.4;}
+    .psheet.cover .ptitle::before{content:"✦ "; color:#e8845e;}
+    .psheet.cover .pbyline{font-size:14pt; color:#666; margin-top:3mm; text-align:center;}
     .psheet .pnum{position:absolute; bottom:4mm; right:8mm; font-size:10pt; color:#999;}
   }
 
@@ -186,6 +215,21 @@
     align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 14px;
   }
   #daihonModal.open, #voiceModal.open{display:flex;}
+  #coverModal{
+    position:fixed; inset:0; background:rgba(50,38,28,.5); z-index:60; display:none;
+    align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 14px;
+  }
+  #coverModal.open{display:flex;}
+  .cv-thumbs{display:flex; gap:8px; flex-wrap:wrap;}
+  .cv-thumbs .cvt{
+    width:72px; aspect-ratio:4/3; border-radius:8px; overflow:hidden; border:3px solid transparent;
+    cursor:pointer; background:#f5ede2;
+  }
+  .cv-thumbs .cvt img{width:100%; height:100%; object-fit:cover;}
+  .cv-thumbs .cvt.sel{border-color:var(--accent);}
+  .cv-bgs{display:flex; gap:10px; flex-wrap:wrap;}
+  .cv-bgs .cvb{width:34px; height:34px; border-radius:50%; cursor:pointer; border:3px solid transparent; box-shadow:var(--shadow);}
+  .cv-bgs .cvb.sel{border-color:var(--ink);}
   .btn.recing{background:#f4b8c1 !important;}
   #vvStatus{min-height:20px; font-size:13px; color:var(--accent2); margin-top:8px;}
   #vvStatus.err{color:#c0564a;}
@@ -271,6 +315,7 @@
       <button class="btn" id="edBulk">🖼 画像をまとめて取り込み</button>
       <button class="btn" id="edDaihon">📝 台本をつくる</button>
       <button class="btn" id="edVoice">🔊 音声</button>
+      <button class="btn" id="edCover">🎨 表紙</button>
       <button class="btn" id="edPrint">🖨 印刷用（PDF）</button>
       <button class="btn" id="edExport">📤 絵本ファイル書き出し</button>
     </div>
@@ -288,6 +333,7 @@
 <!-- ========== リーダー ========== -->
 <div id="reader">
   <div class="rd-stage" id="rdStage">
+    <div class="rd-cover cover-box" id="rdCover"></div>
     <div class="rd-inner">
       <div class="rd-img" id="rdImg"></div>
       <div class="rd-text" id="rdText"></div>
@@ -301,6 +347,38 @@
     <button class="btn" id="rdClose">✕ とじる</button>
   </div>
 </div>
+
+<!-- ========== 表紙モーダル ========== -->
+<div id="coverModal">
+  <div class="mbox">
+    <h2>🎨 表紙をつくる</h2>
+    <p class="mnote">タイトルを大きく入れた表紙が、絵本のいちばん最初に表示されます。絵は自動で1ページ目のものが使われますが、下から好きな絵に変えられます。</p>
+
+    <div id="cvPreview" class="cover-box" style="max-width:340px; margin:0 auto 16px; border-radius:12px; box-shadow:var(--shadow);"></div>
+
+    <div class="mfield">
+      <label>表紙の絵をえらぶ</label>
+      <div id="cvThumbs" class="cv-thumbs"></div>
+      <div class="mrow" style="margin-top:10px">
+        <button class="btn small" id="cvUpload">🖼 別の画像を選ぶ</button>
+        <button class="btn small" id="cvReset">↩ 1ページ目にもどす</button>
+      </div>
+    </div>
+
+    <div class="mfield">
+      <label>作者など（さく・え／おなまえ など・任意）</label>
+      <input type="text" id="cvByline" placeholder="例：さく・え おかあさん">
+    </div>
+
+    <div class="mfield">
+      <label>背景の色（絵がないときに使われます）</label>
+      <div id="cvBgs" class="cv-bgs"></div>
+    </div>
+
+    <button class="btn primary mclose" id="cvClose">できあがり</button>
+  </div>
+</div>
+<input type="file" id="cvFile" accept="image/*" style="display:none">
 
 <!-- ========== 音声モーダル ========== -->
 <div id="voiceModal">
@@ -485,6 +563,32 @@ function toast(msg){
 function esc(s){ return (s || "").replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c])); }
 function heroText(book, text){ return (text || "").split("{なまえ}").join(book.hero?.name || ""); }
 
+/* ---------- 表紙（共通） ---------- */
+const COVER_BGS = [
+  "linear-gradient(160deg,#fdf3e3,#f2cf9f)",
+  "linear-gradient(160deg,#dbeaf6,#a9cbe6)",
+  "linear-gradient(160deg,#f6dfe4,#e8a9bd)",
+  "linear-gradient(160deg,#e2f0d9,#a9cf94)",
+  "linear-gradient(160deg,#3d4a6b,#2e3a56)"
+];
+// 表紙に使う絵: 明示指定 > 1ページ目の絵 > なし
+function coverImgOf(b){ return b.cover?.img || b.pages.find(p => p.img)?.img || null; }
+// 表紙DOMのHTML（cover-box の中身。リーダー・モーダルプレビュー共用）
+function coverHTML(book){
+  const img = coverImgOf(book);
+  const title = esc(heroText(book, book.title) || "（タイトルなし）");
+  const byline = esc(book.cover?.byline || "");
+  const bg = book.cover?.bg;
+  return (img
+      ? '<div class="cover-art"><img src="' + img + '" alt=""></div>'
+      : '<div class="cover-art noimg"' + (bg ? ' style="background:' + bg + '"' : "") + "></div>") +
+    '<div class="cover-scrim"></div>' +
+    '<div class="cover-frame"></div>' +
+    '<div class="cover-plate"><div class="ctitle">' + title + "</div>" +
+      (byline ? '<div class="cbyline">' + byline + "</div>" : "") +
+    "</div>";
+}
+
 /* ---------- 画像取り込み（外部作成画像を第一級で扱う） ---------- */
 const MAX_EDGE = 1400, JPEG_Q = 0.82;
 function importImageFile(file){
@@ -540,13 +644,18 @@ async function renderLibrary(){
   const g = $("bookGrid");
   g.innerHTML = "";
   for (const b of books) {
-    const cover = b.pages.find(p => p.img)?.img;
+    const cover = coverImgOf(b);
+    const bg = b.cover?.bg;
     const el = document.createElement("div");
     el.className = "book";
     el.innerHTML =
-      '<div class="cover">' + (cover ? '<img alt="">' : "📖") + "</div>" +
-      '<div class="meta"><div class="title">' + esc(heroText(b, b.title) || "（タイトルなし）") + "</div>" +
-      '<div class="pages">' + b.pages.length + "ページ　主人公：" + esc(b.hero?.name || "—") + "</div></div>" +
+      '<div class="cover' + (cover ? '' : ' noimg') + '"' + (!cover && bg ? ' style="background:' + bg + '"' : "") + ">" +
+        (cover ? '<img alt="">' : '<div class="gemoji">📖</div>') +
+        '<div class="gscrim"></div>' +
+        '<div class="gtitle">' + esc(heroText(b, b.title) || "（タイトルなし）") + "</div>" +
+      "</div>" +
+      '<div class="meta">' +
+        '<div class="pages">' + b.pages.length + "ページ　主人公：" + esc(b.hero?.name || "—") + "</div></div>" +
       '<div class="ops"><button class="btn green" data-act="read">▶ よむ</button>' +
       '<button class="btn" data-act="edit">✎ つくる</button>' +
       '<button class="btn menu" data-act="del" title="削除">🗑</button></div>';
@@ -751,11 +860,27 @@ function blobToDataURL(blob){
 /* ---------- リーダー ---------- */
 let rdBook = null, rdIdx = 0;
 function openReader(book){
-  rdBook = book; rdIdx = 0;
+  rdBook = book; rdIdx = -1;   // -1 = 表紙から始まる
   $("reader").classList.add("open");
-  renderReaderPage(0);
+  renderReaderPage(1);
 }
 function renderReaderPage(dir){
+  const st = $("rdStage");
+  const inner = st.querySelector(".rd-inner");
+  const cov = $("rdCover");
+  st.classList.remove("anim", "animL");
+  void st.offsetWidth; // reflowでアニメ再発火
+  st.classList.add(dir < 0 ? "animL" : "anim");
+
+  if (rdIdx === -1) {                       // ---- 表紙 ----
+    inner.style.display = "none";
+    cov.style.display = "block";
+    cov.innerHTML = coverHTML(rdBook);
+    $("rdPageNo").textContent = "ひょうし";
+    return;
+  }
+  inner.style.display = "";
+  cov.style.display = "none";
   const p = rdBook.pages[rdIdx];
   const imgBox = $("rdImg");
   imgBox.innerHTML = "";
@@ -767,17 +892,13 @@ function renderReaderPage(dir){
   }
   $("rdText").textContent = heroText(rdBook, p.text);
   $("rdPageNo").textContent = (rdIdx + 1) + " / " + rdBook.pages.length;
-  const st = $("rdStage");
-  st.classList.remove("anim", "animL");
-  void st.offsetWidth; // reflowでアニメ再発火
-  st.classList.add(dir < 0 ? "animL" : "anim");
   // ページに音声（録音 or AI生成）があれば自動再生（めくり=タップ操作中なのでiOSでも再生可）
   if (p.audio) playAudio(p.audio);
 }
 function rdMove(d){
   stopAudio();
   const n = rdIdx + d;
-  if (n < 0 || n >= rdBook.pages.length) return;
+  if (n < -1 || n >= rdBook.pages.length) return;
   rdIdx = n; renderReaderPage(d);
 }
 $("rdNext").onclick = () => rdMove(1);
@@ -785,10 +906,12 @@ $("rdPrev").onclick = () => rdMove(-1);
 $("rdClose").onclick = () => { stopAudio(); $("reader").classList.remove("open"); rdBook = null; };
 $("rdSpeak").onclick = () => {
   if (!rdBook) return;
-  const p = rdBook.pages[rdIdx];
-  if (p.audio) { playAudio(p.audio); return; }   // 録音/AI音声を優先
+  const text = rdIdx === -1
+    ? heroText(rdBook, rdBook.title)              // 表紙はタイトルを読む
+    : (rdBook.pages[rdIdx].audio ? null : heroText(rdBook, rdBook.pages[rdIdx].text));
+  if (rdIdx >= 0 && rdBook.pages[rdIdx].audio) { playAudio(rdBook.pages[rdIdx].audio); return; }
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(heroText(rdBook, p.text));
+  const u = new SpeechSynthesisUtterance(text);
   u.lang = "ja-JP"; u.rate = 0.85;
   speechSynthesis.speak(u);
 };
@@ -811,11 +934,12 @@ document.addEventListener("keydown", e => {
 $("edPrint").onclick = () => {
   if (!cur) return;
   const pa = $("printArea");
-  const coverImg = cur.pages.find(p => p.img)?.img;
+  const coverImg = coverImgOf(cur);
+  const byline = cur.cover?.byline || (cur.hero?.name ? "しゅじんこう：" + cur.hero.name : "");
   let html = '<div class="psheet cover">' +
-    (coverImg ? '<img src="' + coverImg + '" alt="">' : "") +
+    (coverImg ? '<div class="pcover-art"><img src="' + coverImg + '" alt=""></div>' : "") +
     '<div class="ptitle">' + esc(heroText(cur, cur.title)) + "</div>" +
-    (cur.hero?.name ? '<div class="pauthor">しゅじんこう：' + esc(cur.hero.name) + "</div>" : "") +
+    (byline ? '<div class="pbyline">' + esc(byline) + "</div>" : "") +
     "</div>";
   cur.pages.forEach((p, i) => {
     html += '<div class="psheet" style="position:relative">' +
@@ -1288,6 +1412,70 @@ $("vvClear").onclick = () => {
   markDirty(); renderPages();
   vvStatus("音声をすべて削除しました");
 };
+
+/* ============================================================
+   表紙モーダル
+   ============================================================ */
+function cvRefresh(){
+  $("cvPreview").innerHTML = coverHTML(cur);
+  // 絵のサムネ選択状態
+  const curImg = coverImgOf(cur);
+  $("cvThumbs").querySelectorAll(".cvt").forEach(t => t.classList.toggle("sel", t.dataset.src === curImg));
+  // 背景色の選択状態
+  $("cvBgs").querySelectorAll(".cvb").forEach(b => b.classList.toggle("sel", b.dataset.bg === (cur.cover?.bg || "")));
+}
+$("edCover").onclick = () => {
+  if (!cur) return;
+  cur.cover = cur.cover || {};
+  // 絵のサムネ（絵があるページ）
+  const th = $("cvThumbs");
+  th.innerHTML = "";
+  cur.pages.forEach(p => {
+    if (!p.img) return;
+    const d = document.createElement("div");
+    d.className = "cvt"; d.dataset.src = p.img;
+    d.innerHTML = '<img alt="">'; d.querySelector("img").src = p.img;
+    d.onclick = () => { cur.cover.img = p.img; markDirty(); cvRefresh(); };
+    th.appendChild(d);
+  });
+  if (!th.children.length) th.innerHTML = '<span style="font-size:13px;color:var(--sub)">絵のあるページがありません。下の「別の画像を選ぶ」から表紙の絵を入れられます。</span>';
+  // 背景色スウォッチ
+  const bgWrap = $("cvBgs");
+  bgWrap.innerHTML = "";
+  COVER_BGS.forEach(g => {
+    const b = document.createElement("div");
+    b.className = "cvb"; b.dataset.bg = g; b.style.background = g;
+    b.onclick = () => { cur.cover.bg = g; markDirty(); cvRefresh(); };
+    bgWrap.appendChild(b);
+  });
+  $("cvByline").value = cur.cover.byline || "";
+  cvRefresh();
+  $("coverModal").classList.add("open");
+};
+$("cvByline").addEventListener("input", () => {
+  if (!cur) return;
+  cur.cover = cur.cover || {};
+  cur.cover.byline = $("cvByline").value;
+  markDirty(); cvRefresh();
+});
+$("cvUpload").onclick = () => { $("cvFile").value = ""; $("cvFile").click(); };
+$("cvFile").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  if (!f || !cur) return;
+  cur.cover = cur.cover || {};
+  cur.cover.img = await importImageFile(f);   // ページと同じ圧縮を通す
+  markDirty(); cvRefresh();
+});
+$("cvReset").onclick = () => {
+  if (!cur) return;
+  cur.cover = cur.cover || {};
+  cur.cover.img = null;   // 1ページ目の絵に戻る
+  markDirty(); cvRefresh();
+};
+$("cvClose").onclick = () => { $("coverModal").classList.remove("open"); };
+$("coverModal").addEventListener("click", e => {
+  if (e.target === $("coverModal")) $("coverModal").classList.remove("open");
+});
 
 /* ---------- サンプル絵本（初回のみ投入） ---------- */
 function svgURI(s){ return "data:image/svg+xml;utf8," + encodeURIComponent(s); }
