@@ -189,6 +189,20 @@
   .cover-plate .cbyline{ margin-top:5%; font-size:clamp(10px,2cqw,17px); color:#8a7a6e; }
   .cover-plate::before{ content:"✦"; color:#e8845e; font-size:clamp(11px,2.2cqw,20px); display:block; margin-bottom:2%; }
   .cover-box{ container-type:inline-size; }
+  /* タイトル位置 */
+  .cover-plate.pos-top{ bottom:auto; top:8%; }
+  .cover-plate.pos-center{ bottom:auto; top:50%; transform:translateY(-50%); }
+  /* タイトル札の透明度 */
+  .cover-plate.plate-soft{ background:rgba(255,253,247,.55); box-shadow:0 3px 12px rgba(0,0,0,.18); }
+  .cover-plate.plate-none{ background:transparent; box-shadow:none; padding:2% 4%; }
+  .cover-plate.plate-none .ctitle{ color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.75), 0 0 3px rgba(0,0,0,.55); }
+  .cover-plate.plate-none .cbyline{ color:#f6f0e6; text-shadow:0 1px 6px rgba(0,0,0,.7); }
+  .cover-plate.plate-none::before{ text-shadow:0 1px 5px rgba(0,0,0,.6); }
+  /* 文字のかたち（Apple系の日本語フォント） */
+  .font-maru{ font-family:"Hiragino Maru Gothic ProN","Hiragino Maru Gothic Pro",sans-serif; }
+  .font-kyokasho{ font-family:"YuKyokasho Yoko","YuKyokasho","UD Digi Kyokasho NP-R",serif; }
+  .font-mincho{ font-family:"Hiragino Mincho ProN","YuMincho","Yu Mincho",serif; }
+  .font-gothic{ font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","BIZ UDGothic",sans-serif; }
   .rd-nav{
     position:absolute; top:0; bottom:0; width:34%;
   }
@@ -242,6 +256,12 @@
   .cv-bgs{display:flex; gap:10px; flex-wrap:wrap;}
   .cv-bgs .cvb{width:34px; height:34px; border-radius:50%; cursor:pointer; border:3px solid transparent; box-shadow:var(--shadow);}
   .cv-bgs .cvb.sel{border-color:var(--ink);}
+  .cv-seg{display:flex; gap:8px; flex-wrap:wrap;}
+  .cv-seg .seg{
+    padding:9px 14px; border-radius:11px; background:#f1e7da; color:var(--ink);
+    font-size:14px; font-weight:700; border:2px solid transparent; cursor:pointer;
+  }
+  .cv-seg .seg.sel{background:#fff; border-color:var(--accent); color:var(--accent);}
   .btn.recing{background:#f4b8c1 !important;}
   #vvStatus{min-height:20px; font-size:13px; color:var(--accent2); margin-top:8px;}
   #vvStatus.err{color:#c0564a;}
@@ -386,6 +406,21 @@
         <button class="btn small" id="cvUpload">🖼 別の画像を選ぶ</button>
         <button class="btn small" id="cvReset">↩ 1ページ目にもどす</button>
       </div>
+    </div>
+
+    <div class="mfield">
+      <label>タイトルの位置</label>
+      <div id="cvPos" class="cv-seg"></div>
+    </div>
+
+    <div class="mfield">
+      <label>もじの かたち</label>
+      <div id="cvFont" class="cv-seg"></div>
+    </div>
+
+    <div class="mfield">
+      <label>タイトルの ふだ（枠）</label>
+      <div id="cvPlate" class="cv-seg"></div>
     </div>
 
     <div class="mfield">
@@ -602,12 +637,15 @@ function coverHTML(book){
   const title = esc(heroText(book, book.title) || "（タイトルなし）");
   const byline = esc(book.cover?.byline || "");
   const bg = book.cover?.bg;
+  const pos = book.cover?.pos || "bottom";
+  const font = book.cover?.font || "maru";
+  const plate = book.cover?.plate || "solid";
   return (img
       ? '<div class="cover-art"><img src="' + img + '" alt=""></div>'
       : '<div class="cover-art noimg"' + (bg ? ' style="background:' + bg + '"' : "") + "></div>") +
     '<div class="cover-scrim"></div>' +
     '<div class="cover-frame"></div>' +
-    '<div class="cover-plate"><div class="ctitle">' + title + "</div>" +
+    '<div class="cover-plate pos-' + pos + " plate-" + plate + " font-" + font + '"><div class="ctitle">' + title + "</div>" +
       (byline ? '<div class="cbyline">' + byline + "</div>" : "") +
     "</div>";
 }
@@ -959,7 +997,8 @@ $("edPrint").onclick = () => {
   const pa = $("printArea");
   const coverImg = coverImgOf(cur);
   const byline = cur.cover?.byline || (cur.hero?.name ? "しゅじんこう：" + cur.hero.name : "");
-  let html = '<div class="psheet cover">' +
+  const cfont = "font-" + (cur.cover?.font || "maru");
+  let html = '<div class="psheet cover ' + cfont + '">' +
     (coverImg ? '<div class="pcover-art"><img src="' + coverImg + '" alt=""></div>' : "") +
     '<div class="ptitle">' + esc(heroText(cur, cur.title)) + "</div>" +
     (byline ? '<div class="pbyline">' + esc(byline) + "</div>" : "") +
@@ -1446,13 +1485,34 @@ $("vvClear").onclick = () => {
 /* ============================================================
    表紙モーダル
    ============================================================ */
+// 見た目オプション（値, 表示ラベル, 既定）
+const CV_POS = [["top", "うえ"], ["center", "まんなか"], ["bottom", "した"]];
+const CV_FONT = [["maru", "まる"], ["kyokasho", "きょうかしょ"], ["mincho", "みんちょう"], ["gothic", "ゴシック"]];
+const CV_PLATE = [["solid", "くっきり"], ["soft", "すこし透ける"], ["none", "透明"]];
+function buildSeg(wrapId, opts, key, fontPreview){
+  const w = $(wrapId);
+  w.innerHTML = "";
+  opts.forEach(([v, label]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "seg" + (fontPreview ? " font-" + v : "");  // フォントは選択肢自体をそのフォントで表示
+    b.dataset.val = v; b.textContent = label;
+    b.onclick = () => { cur.cover = cur.cover || {}; cur.cover[key] = v; markDirty(); cvRefresh(); };
+    w.appendChild(b);
+  });
+}
+function segSel(wrapId, key, def){
+  const val = cur.cover?.[key] || def;
+  $(wrapId).querySelectorAll(".seg").forEach(b => b.classList.toggle("sel", b.dataset.val === val));
+}
 function cvRefresh(){
   $("cvPreview").innerHTML = coverHTML(cur);
-  // 絵のサムネ選択状態
   const curImg = coverImgOf(cur);
   $("cvThumbs").querySelectorAll(".cvt").forEach(t => t.classList.toggle("sel", t.dataset.src === curImg));
-  // 背景色の選択状態
   $("cvBgs").querySelectorAll(".cvb").forEach(b => b.classList.toggle("sel", b.dataset.bg === (cur.cover?.bg || "")));
+  segSel("cvPos", "pos", "bottom");
+  segSel("cvFont", "font", "maru");
+  segSel("cvPlate", "plate", "solid");
 }
 $("edCover").onclick = () => {
   if (!cur) return;
@@ -1469,6 +1529,10 @@ $("edCover").onclick = () => {
     th.appendChild(d);
   });
   if (!th.children.length) th.innerHTML = '<span style="font-size:13px;color:var(--sub)">絵のあるページがありません。下の「別の画像を選ぶ」から表紙の絵を入れられます。</span>';
+  // 位置・フォント・札
+  buildSeg("cvPos", CV_POS, "pos", false);
+  buildSeg("cvFont", CV_FONT, "font", true);
+  buildSeg("cvPlate", CV_PLATE, "plate", false);
   // 背景色スウォッチ
   const bgWrap = $("cvBgs");
   bgWrap.innerHTML = "";
