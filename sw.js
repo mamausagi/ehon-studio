@@ -1,6 +1,6 @@
 // えほんスタジオ service worker — シェルのみキャッシュ（絵本データはIndexedDB）
 // デプロイ時は CACHE の版数を必ずバンプすること（deploy-appスキルが自動で行う）
-const CACHE = "ehon-studio-v2";
+const CACHE = "ehon-studio-v3";
 const SHELL = [
   "./",
   "./index.html",

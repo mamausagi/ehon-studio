@@ -38,6 +38,18 @@
     position:sticky; top:0; z-index:5;
   }
   header h1{font-size:20px; margin:0; letter-spacing:1px;}
+  .mode-badge{font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; margin-left:8px; white-space:nowrap;}
+  .mode-badge.local{background:#e2f0d9; color:#4a7a35;}
+  .mode-badge.web{background:#dbeaf6; color:#3f6f96;}
+  .mode-note{
+    background:#eef5fb; border:1px solid #bcd7ec; border-radius:14px;
+    padding:12px 16px; font-size:13px; color:#3f6f96; line-height:1.8; margin-bottom:14px;
+  }
+  #fileWarn{
+    display:none; background:#fbe6e2; border-bottom:2px solid #e0a99e; color:#a5453a;
+    padding:12px 18px; font-size:13.5px; line-height:1.7; text-align:center;
+  }
+  #fileWarn.show{display:block;}
   header .logo{font-size:26px;}
   header .spacer{flex:1;}
 
@@ -278,12 +290,23 @@
 <header>
   <span class="logo">📖</span>
   <h1 id="hd-title">えほんスタジオ</h1>
+  <span id="modeBadge" class="mode-badge"></span>
   <span class="spacer"></span>
   <button class="btn small ghost" id="hd-back" style="display:none">← 本棚へ</button>
 </header>
 
+<!-- file:// で直接開いたときの警告 -->
+<div id="fileWarn">
+  ⚠️ このファイルを直接ひらいています。この開き方では<b>音声づくり・ホーム画面追加が使えません</b>。<br>
+  デスクトップの <b>「えほんスタジオ（音声づくり）」</b> アイコンから開いてください。
+</div>
+
 <!-- ========== 本棚 ========== -->
 <div class="wrap" id="viewLibrary">
+  <div id="webNote" class="mode-note" style="display:none">
+    🌐 <b>web版（よむ・共有用）</b>です。絵本を読む・iPhoneのホーム画面に追加・人に渡すのに使えます。<br>
+    <b>VOICEVOXのAI音声づくりは、Macのデスクトップにある「えほんスタジオ（音声づくり）」から</b>行ってください（このweb版ではAI音声は作れません。かぞくの声の録音はこのままでもできます）。
+  </div>
   <div class="shelf-actions">
     <button class="btn primary" id="btnNew">＋ 新しい絵本</button>
     <button class="btn" id="btnImport">📥 絵本ファイルを読み込む</button>
@@ -1370,6 +1393,13 @@ $("edVoice").onclick = async () => {
   if (!cur) return;
   vvStatus("");
   $("voiceModal").classList.add("open");
+  // web版・file版ではローカルVOICEVOXに繋げない → AI生成を無効化して案内
+  if (appMode() !== "local") {
+    $("vvGen").disabled = true;
+    vvStatus("この版ではAI音声（VOICEVOX）は作れません。Macのデスクトップにある「えほんスタジオ（音声づくり）」から開いてつくってください。※ページごとの「🎙こえ」録音はこのままでもできます。", true);
+    return;
+  }
+  $("vvGen").disabled = false;
   const ok = await vvLoadSpeakers();
   vvStatus(ok ? "✅ VOICEVOXに接続できています" : "VOICEVOXが起動していません（AI生成にはMacでVOICEVOXアプリを起動してください。録音・再生には不要です）", !ok);
 };
@@ -1562,11 +1592,29 @@ function sampleBook(){
   };
 }
 
+/* ---------- どの版か（オリジン判定） ----------
+   local = デスクトップのランチャー(localhost/127.0.0.1, http) → VOICEVOX音声OK
+   web   = github.io など → 読む・共有用（AI音声は不可）
+   file  = index.htmlを直接ひらいた → 落とし穴（音声もアプリ化も不可） */
+function appMode(){
+  if (location.protocol === "file:") return "file";
+  if (["localhost", "127.0.0.1"].includes(location.hostname)) return "local";
+  return "web";
+}
+function applyModeUI(){
+  const m = appMode();
+  const badge = $("modeBadge");
+  if (m === "local") { badge.className = "mode-badge local"; badge.textContent = "🎨 音声づくり版"; }
+  else if (m === "web") { badge.className = "mode-badge web"; badge.textContent = "🌐 web版"; $("webNote").style.display = ""; }
+  else { badge.textContent = ""; $("fileWarn").classList.add("show"); }
+}
+
 /* ---------- init ---------- */
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
 (async function init(){
+  applyModeUI();
   try {
     if (!localStorage.getItem("ehon_seeded")) {
       const all = await dbAll();
